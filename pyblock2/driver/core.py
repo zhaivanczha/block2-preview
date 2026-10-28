@@ -9788,21 +9788,22 @@ class OrbitalEntropy:
         """Internal method for computing symbolic terms in two-orbital RDM."""
         h_terms = {}
         # Table 3. J. Chem. Theory Comput. 2013, 9, 2959-2973
+        # (SZ signs: same convention as in get_two_orb_rdm_exprs)
         if block_symm:
             if is_sgf:
                 ts = "1/1 1/4 2/3 4/1 4/4"
             else:
                 ts = (
-                    "1/1 1/6 2/5 6/1 1/11 3/9 11/1 6/6 1/16 2/15 -3/14 -4/13 6/11 7/10 "
-                    + "-8/9 11/6 12/5 16/1 11/11 6/16 8/14 16/6 11/16 12/15 16/11 16/16"
+                    "1/1 1/6 -2/5 6/1 1/11 -3/9 11/1 6/6 1/16 2/15 3/14 -4/13 6/11 -7/10 "
+                    + "-8/9 11/6 -12/5 16/1 11/11 6/16 8/14 16/6 11/16 12/15 16/11 16/16"
                 )
         else:
             if is_sgf:
                 ts = "1/1 1/4 2/3 -3/2 4/1 4/4"
             else:
                 ts = (
-                    "1/1 1/6 2/5 -5/2 6/1 1/11 3/9 -9/3 11/1 6/6 1/16 2/15 -3/14 "
-                    + "-4/13 -5/12 6/11 7/10 -8/9 9/8 10/7 11/6 12/5 -13/4 14/3 -15/2 16/1 "
+                    "1/1 1/6 -2/5 5/2 6/1 1/11 -3/9 9/3 11/1 6/6 1/16 2/15 3/14 "
+                    + "-4/13 -5/12 6/11 -7/10 -8/9 -9/8 -10/7 11/6 -12/5 -13/4 14/3 15/2 16/1 "
                     + "11/11 6/16 8/14 -14/8 16/6 11/16 12/15 -15/12 16/11 16/16"
                 )
         ts = [[int(v) for v in u.split("/")] for u in ts.split()]
@@ -9863,13 +9864,17 @@ class OrbitalEntropy:
         """Internal method for computing two-orbital RDM expressions (for NPDM engine)."""
         exprs = {}
         # Table 3. J. Chem. Theory Comput. 2013, 9, 2959-2973
+        # SZ signs: the entries are the elements of the two-orbital RDM in the basis
+        # |s_i s_j> = C(s_i)_i C(s_j)_j |vac>, with one-orbital states s = 0, dn, up,
+        # updn (same order as in OrbitalEntropy.ops) and C(0) = 1, C(dn) = a+_dn,
+        # C(up) = a+_up, C(updn) = a+_up a+_dn
         if is_sgf:
             ts = "1/1 1/4 2/3 -3/2 4/1 4/4"
             ops = OrbitalEntropy.ops_ghf
         else:
             ts = (
-                "1/1 1/6 2/5 -5/2 6/1 1/11 3/9 -9/3 11/1 6/6 1/16 2/15 -3/14 "
-                + "-4/13 -5/12 6/11 7/10 -8/9 9/8 10/7 11/6 12/5 -13/4 14/3 -15/2 16/1 "
+                "1/1 1/6 -2/5 5/2 6/1 1/11 -3/9 9/3 11/1 6/6 1/16 2/15 3/14 "
+                + "-4/13 -5/12 6/11 -7/10 -8/9 -9/8 -10/7 11/6 -12/5 -13/4 14/3 15/2 16/1 "
                 + "11/11 6/16 8/14 -14/8 16/6 11/16 12/15 -15/12 16/11 16/16"
             )
             ops = OrbitalEntropy.ops
