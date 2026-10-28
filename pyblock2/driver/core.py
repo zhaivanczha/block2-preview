@@ -7819,7 +7819,7 @@ class DMRGDriver:
         zmps = self.adjust_mps(zmps, dot=mps.dot)[0]
         return zmps
 
-    def mps_change_to_sz(self, mps, tag, sz=None):
+    def mps_change_to_sz(self, mps, tag, sz=None, canonicalize=True):
         """
         Change MPS from spin-adapted to non-spin-adapted.
         Only works in SU2 mode. The resulting MPS should be used in SZ mode.
@@ -7834,6 +7834,14 @@ class DMRGDriver:
                 the output MPS to be the given number.
                 If None, the output MPS will contain all possible project spin
                 components. Default is None.
+            canonicalize : bool
+                If True, the output MPS is canonicalized (which does not change
+                the state), so that its site tensors are orthonormal as indicated
+                by its canonical form. This is required for using the output MPS
+                in sweep algorithms (for example ``dmrg``), since the
+                Clebsch-Gordan expansion of the SU2 site tensors does not keep
+                them orthonormal. If False, the output MPS can only be used for
+                computing expectation values. Default is True.
 
         Returns:
             zmps : MPS
@@ -7851,6 +7859,33 @@ class DMRGDriver:
         if sz is not None:
             umps.resolve_singlet_embedding(sz)
         zmps = umps.finalize(self.prule)
+
+        # the output lives in the SZ module even though the driver is in SU2 mode
+        zmulti = getattr(getattr(bw.b, "sz", bw.bs), "MultiMPS", ())
+        if canonicalize and not isinstance(zmps, zmulti):
+            if self.mpi is not None:
+                self.mpi.barrier()
+            zmps.info.load_mutable()
+            zmps.load_mutable()
+            # MPS.canonicalize assumes that a 2-site MPS stores the two-site
+            # wavefunction at ``center`` with ``tensors[center + 1] is None``.
+            # An MPS whose center was moved by 1-site operations (for example
+            # after ``align_mps_center``) keeps ``dot == 2`` but stores one
+            # site tensor per site; treat it as a 1-site MPS for the QR sweep.
+            zdot = zmps.dot
+            if (
+                zdot == 2
+                and zmps.center + 1 < zmps.n_sites
+                and zmps.tensors[zmps.center + 1] is not None
+            ):
+                zmps.dot = 1
+            zmps.canonicalize()
+            zmps.dot = zdot
+            zmps.save_mutable()
+            zmps.deallocate()
+            zmps.info.deallocate_mutable()
+            if self.mpi is not None:
+                self.mpi.barrier()
 
         zmps.info.save_data(self.scratch + "/%s-mps_info.bin" % tag)
         zmps = self.adjust_mps(zmps, dot=mps.dot)[0]
